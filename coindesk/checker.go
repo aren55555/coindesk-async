@@ -10,11 +10,13 @@ import (
 )
 
 const (
-	apiURL = "https://api.coindesk.com/v1/bpi/currentprice.json"
+	pollingInterval = 1 * time.Second
+	apiURL          = "https://api.coindesk.com/v1/bpi/currentprice.json"
 )
 
 // Checker presents an interface for fetching values from the CoinDesk api on a repeated interval.
 type Checker struct {
+	started bool
 	stop    chan struct{}
 	mu      sync.RWMutex
 	current *Value
@@ -38,6 +40,7 @@ func (c *Checker) GetValue() (Value, error) {
 }
 
 // Stop will cease the polling.
+// Stop will cease the polling.
 func (c *Checker) Stop() {
 	fmt.Println("stopping...")
 	c.stop <- struct{}{}
@@ -50,7 +53,7 @@ func (c *Checker) Start() {
 }
 
 func (c *Checker) do() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(pollingInterval)
 	for {
 		select {
 		case <-ticker.C:
@@ -63,6 +66,8 @@ func (c *Checker) do() {
 }
 
 func (c *Checker) fetchAndUpdate() {
+	fmt.Println("fetching a new price...")
+
 	request, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return
